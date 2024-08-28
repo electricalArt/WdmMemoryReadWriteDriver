@@ -78,28 +78,19 @@ int wmain(int argc, wchar_t* argv[])
 	if (result == 0) {
 		if (wcscmp(argv[1], L"read") == 0) {
 			copy.Write = FALSE;
-			copy.Source = (ULONGLONG)&buff;
-			copy.Target = _wcstoui64(argv[3], NULL, 16);
 		}
 		else if (wcscmp(argv[1], L"write") == 0) {
 			copy.Write = TRUE;
-			copy.Source = _wcstoui64(argv[3], NULL, 16);
-			copy.Target = (ULONGLONG)&buff;
 			buff = wcstoul(argv[5], NULL, 10);
 		}
+		copy.Source = (ULONGLONG)&buff;
 		copy.ProcessId = wcstoul(argv[2], NULL, 10);
+		copy.Target = _wcstoui64(argv[3], NULL, 16);
 		copy.Size = wcstoul(argv[4], NULL, 10);
 
+		wprintf(L"IsWrite: %d\n", copy.Write);
 		wprintf(L"ProcessId: %d\n", copy.ProcessId);
-		if (copy.Write) {
-			puts("Operation: write");
-			wprintf(L"Pointer: %llx\n", copy.Source);
-			wprintf(L"New requested value: %d\n", buff);
-		}
-		else {
-			puts("Operation: read");
-			wprintf(L"Pointer: %llx\n", copy.Target);
-		}
+		wprintf(L"Pointer: %llx\n", copy.Target);
 		wprintf(L"Size: %lld\n", copy.Size);
 
 		result = PerformTest(copy, &buff);
