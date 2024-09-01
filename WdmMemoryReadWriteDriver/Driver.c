@@ -33,17 +33,12 @@ NTSTATUS DriverCopy(IN PDRIVER_COPY_MEMORY copy) {
 		PEPROCESS sourceProcess, targetProcess;
 		PVOID sourcePtr, targetPtr;
 
-		if (copy->Write == FALSE) {
-			sourceProcess = process;
-			targetProcess = PsGetCurrentProcess();
-			sourcePtr = (PVOID)copy->Target;
-			targetPtr = (PVOID)copy->Source;
-		} else {
-			sourceProcess = PsGetCurrentProcess();
-			targetProcess = process;
-			sourcePtr = (PVOID)copy->Source;
-			targetPtr = (PVOID)copy->Target;
-		}
+		DbgPrint("Lucky one!");
+
+		sourceProcess = process;
+		sourcePtr = (PVOID)copy->Source;
+		targetProcess = PsGetCurrentProcess();
+		targetPtr = (PVOID)copy->Target;
 
 		SIZE_T bytes;
 		status = MmCopyVirtualMemory(sourceProcess, sourcePtr, targetProcess, targetPtr, copy->Size, KernelMode, &bytes);

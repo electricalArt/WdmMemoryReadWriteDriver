@@ -1,56 +1,31 @@
 #include <Windows.h>
 #include <stdio.h>
+#include <easylogging++.h>
+#include <tclap/CmdLine.h>
 #include "WdmMemoryReadWriteDriver.h"
 
-DWORD PerformTest(DRIVER_COPY_MEMORY copy, PDWORD pBuff)
-{
-	DWORD result = 0;
-	DWORD cbReturned = 0;
+INITIALIZE_EASYLOGGINGPP
 
-	HANDLE hDevice = CreateFileW(
-		DRIVER_DEVICE_PATH,
-		GENERIC_READ | GENERIC_WRITE,
-		FILE_SHARE_READ | FILE_SHARE_WRITE,
-		0,
-		OPEN_EXISTING,
-		0, 0);
-	if (hDevice == INVALID_HANDLE_VALUE) {
-		wprintf(L"Failed to open the device (%s). Error: %d\n", DRIVER_DEVICE_PATH, GetLastError());
-		result = 1;
-	}
+BOOL ReadProcessMemoryDrivered(
+    _In_ HANDLE hProcess,
+    _In_ LPCVOID lpBaseAddress,
+    _Out_ LPVOID lpBuffer,
+    _In_ SIZE_T nSize,
+    _Out_opt_ LPDWORD lpNumberOfBytesReturned);
 
-	if (result == 0) {
-
-		if (!DeviceIoControl(
-			hDevice,
-			IOCTL_DRIVER_COPY_MEMORY,
-			&copy,
-			sizeof(copy),
-			&copy,
-			sizeof(copy),
-			&cbReturned,
-			NULL
-		)) {
-			printf("DeviceIoControl() failed with error: %d\n", GetLastError());
-			result = 2;
-		}
-	}
-
-	printf("cbReturned: %d\n", cbReturned);
-	printf("Output: %d\n", *pBuff);
-
-	if (hDevice) {
-		CloseHandle(hDevice);
-	}
-	
-	return result;
-}
+void ParseArguments(
+    _In_ int argc,
+    _In_ char** argv,
+    _Out_ std::string& command,
+    _Out_ DWORD* processId,
+    _Out_ LPVOID* pointer,
+    _Out_ INT32* newValue);
 
 /*F+F+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
   Summary:  What MyLocalFunction is for and what it does.
 
-  Args:     TestWdmMemoryReadWriteDriver read  <ProcessId> <Pointer> <Size>
-			TestWdmMemoryReadWriteDriver write <ProcessId> <Pointer> <Size> <NewValue>
+  Args:     TestWdmMemoryReadWriteDriver read  <ProcessId> <Pointer> 
+			TestWdmMemoryReadWriteDriver write <ProcessId> <Pointer> <NewValue>
 
 
   Returns:  zero
@@ -58,44 +33,160 @@ DWORD PerformTest(DRIVER_COPY_MEMORY copy, PDWORD pBuff)
 			nonzero
 				if fail
 ----------------------------------------------------------------F-F*/
-int wmain(int argc, wchar_t* argv[])
+int main(int argc, char** argv)
 {
 	DWORD result = 0;
-	DRIVER_COPY_MEMORY copy = {};
-	DWORD buff = 0;
+    std::string command;
+    DWORD processId = 0;
+    LPVOID pointer = NULL;
+    INT32 newValue = 0;
+    HANDLE process = NULL;
+    DWORD buff = 0;
+    DWORD cbReturned = 0;
 
-	if (argc < 5) {
-		wprintf(
-			L"\n"
-			L"Invalid input.\n"
-			L"\n"
-			L"Usage:\n"
-			L"TestWdmMemoryReadWriteDriver read  <ProcessId> <Pointer> <Size>\n"
-			L"TestWdmMemoryReadWriteDriver write <ProcessId> <Pointer> <Size> <NewValue>\n");
-		result = 1;
-	}
+    try {
+        ParseArguments(argc, argv, command, &processId, &pointer, &newValue);
 
-	if (result == 0) {
-		if (wcscmp(argv[1], L"read") == 0) {
-			copy.Write = FALSE;
-		}
-		else if (wcscmp(argv[1], L"write") == 0) {
-			copy.Write = TRUE;
-			buff = wcstoul(argv[5], NULL, 10);
-		}
-		copy.Source = (ULONGLONG)&buff;
-		copy.ProcessId = wcstoul(argv[2], NULL, 10);
-		copy.Target = _wcstoui64(argv[3], NULL, 16);
-		copy.Size = wcstoul(argv[4], NULL, 10);
+        process = OpenProcess(
+            PROCESS_VM_READ | PROCESS_VM_WRITE | PROCESS_QUERY_LIMITED_INFORMATION,
+            FALSE,
+            processId);
+        if (process == NULL) {
+            throw std::runtime_error("Failed to open specified process");
+        }
 
-		wprintf(L"IsWrite: %d\n", copy.Write);
-		wprintf(L"ProcessId: %d\n", copy.ProcessId);
-		wprintf(L"Pointer: %llx\n", copy.Target);
-		wprintf(L"Size: %lld\n", copy.Size);
+        if (command == "read") {
+            result = ReadProcessMemoryDrivered(
+                process,
+                pointer,
+                &buff,
+                sizeof(buff),
+                &cbReturned);
+            LOG(INFO) << "buff: " << buff;
+            if (result == FALSE) {
+                throw std::runtime_error("Failed to read from specified process");
+            }
+        }
+        else if (command == "write") {
+            // WIP
+        }
+        else {
+            throw TCLAP::ArgException("Invalid command is specified", "command");
+        }
 
-		result = PerformTest(copy, &buff);
-	}
+        std::cout << "buff: " << buff << std::endl;
+        std::cout << "cbReturned: " << cbReturned << std::endl;
+    }
+    catch (TCLAP::ArgException& ex) {
+        std::cout << ex.what() << std::endl;
+    }
+    catch (std::exception& ex) {
+        std::cout << "ERROR: " << ex.what() << std::endl;
+    }
 
-
+    if (process)
+        CloseHandle(process);
 	return result;
+}
+
+void ParseArguments(
+    _In_ int argc,
+    _In_ char** argv,
+    _Out_ std::string& command,
+    _Out_ DWORD* processId,
+    _Out_ LPVOID* pointer,
+    _Out_ INT32* newValue)
+{
+    TCLAP::CmdLine cmd(
+        "TestWdmMemoryReadWriteDriver",
+        ' ',
+        "1.1");
+    TCLAP::UnlabeledValueArg<std::string> commandArg(
+        "command", "The following commands are available: read | write", TRUE,
+        "",
+        "command", cmd);
+    TCLAP::UnlabeledValueArg<DWORD> processIdArg(
+        "process-id", "Process Id", TRUE,
+        1223,
+        "process-id", cmd);
+    TCLAP::UnlabeledValueArg<LPVOID> pointerArg(
+        "target-pointer", "Target process pointer", TRUE,
+        (LPVOID)0x111111111,
+        "process-id", cmd);
+    TCLAP::UnlabeledValueArg<INT32> newValueArg(
+        "new-value", "Value to be written", FALSE,
+        0,
+        "new-value", cmd);
+    cmd.parse(argc, argv);
+
+    command = commandArg.getValue();
+    *processId = processIdArg.getValue();
+    *pointer = pointerArg.getValue();
+    *newValue = newValueArg.getValue();
+    
+    if (command == "write" && newValueArg.isSet() == FALSE) {
+        throw std::runtime_error("`new-value` command-line argument is not set");
+    }
+
+    LOG(INFO) << "command: " << command;
+    LOG(INFO) << "processId: " << *processId;
+    LOG(INFO) << "pointer: 0x" << std::hex << *pointer;
+    LOG(INFO) << "newValue: " << std::dec << *newValue;
+}
+
+BOOL ReadProcessMemoryDrivered(
+    _In_ HANDLE hProcess,
+    _In_ LPCVOID lpBaseAddress,
+    _Out_ LPVOID lpBuffer,
+    _In_ SIZE_T nSize,
+    _Out_opt_ LPDWORD lpNumberOfBytesReturned)
+{
+    BOOL result = TRUE;
+    DRIVER_COPY_MEMORY copyInfo = { 0 };
+    if (lpNumberOfBytesReturned) {
+        *lpNumberOfBytesReturned = 0;
+    }
+    LOG_IF(hProcess == NULL, ERROR) << "hProcess is NULL";
+
+    copyInfo.ProcessId = GetProcessId(hProcess);
+    copyInfo.Source = (ULONGLONG)lpBaseAddress;
+    copyInfo.Target = (ULONGLONG)lpBuffer;
+    copyInfo.Size = nSize;
+    copyInfo.Write = FALSE;
+    LOG_IF(copyInfo.ProcessId == 0, ERROR) << "ProcessId is 0";
+
+    HANDLE hDevice = CreateFileW(
+        DRIVER_DEVICE_PATH,
+        GENERIC_READ | GENERIC_WRITE,
+        FILE_SHARE_READ | FILE_SHARE_WRITE,
+        0,
+        OPEN_EXISTING,
+        0, 0);
+    if (hDevice == INVALID_HANDLE_VALUE) {
+        LOG(ERROR) << L"Failed to open the device " << DRIVER_DEVICE_PATH 
+            << ". Error: " << GetLastError();
+        result = FALSE;
+    }
+
+    if (result == TRUE) {
+        if (!DeviceIoControl(
+            hDevice,
+            IOCTL_DRIVER_COPY_MEMORY,
+            &copyInfo,
+            sizeof(copyInfo),
+            &copyInfo,
+            sizeof(copyInfo),
+            lpNumberOfBytesReturned,
+            NULL
+        )) {
+            LOG(ERROR) << L"DeviceIoControl() failed with error: " << GetLastError();
+            result = FALSE;
+        }
+    }
+
+    LOG(INFO) << "NumberOfBytesReturned: " << *lpNumberOfBytesReturned;
+    if (hDevice) {
+        CloseHandle(hDevice);
+    }
+    return result;
 }
