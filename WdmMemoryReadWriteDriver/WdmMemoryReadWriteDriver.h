@@ -14,6 +14,6 @@ typedef struct _DRIVER_COPY_MEMORY {
 	ULONGLONG Source; // Source buffer address. From where the memory will be read
 	ULONGLONG Target; // Target buffer address. To where the memory will be written
 	ULONGLONG Size; // Buffer size.
-	ULONG ProcessId; // Source process ID
+	ULONG ProcessId; // Source/Target process ID
 	BOOLEAN Write; // TRUE if writing, FALSE if reading.
 } DRIVER_COPY_MEMORY, *PDRIVER_COPY_MEMORY;

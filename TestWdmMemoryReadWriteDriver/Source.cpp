@@ -12,6 +12,12 @@ BOOL ReadProcessMemoryDrivered(
     _Out_ LPVOID lpBuffer,
     _In_ SIZE_T nSize,
     _Out_opt_ LPDWORD lpNumberOfBytesReturned);
+BOOL WriteProcessMemoryDrivered(
+    _In_ HANDLE hProcess,
+    _In_ LPCVOID lpBaseAddress,
+    _In_ LPVOID lpBuffer,
+    _In_ SIZE_T nSize,
+    _Out_opt_ LPDWORD lpNumberOfBytesReturned);
 
 void ParseArguments(
     _In_ int argc,
@@ -68,7 +74,15 @@ int main(int argc, char** argv)
             }
         }
         else if (command == "write") {
-            // WIP
+            result = WriteProcessMemoryDrivered(
+                process,
+                pointer,
+                &newValue,
+                sizeof newValue,
+                &cbReturned);
+            if (result == FALSE) {
+                throw std::runtime_error("Failed to write to specified process");
+            }
         }
         else {
             throw TCLAP::ArgException("Invalid command is specified", "command");
@@ -153,7 +167,7 @@ BOOL ReadProcessMemoryDrivered(
     copyInfo.Target = (ULONGLONG)lpBuffer;
     copyInfo.Size = nSize;
     copyInfo.Write = FALSE;
-    LOG_IF(copyInfo.ProcessId == 0, ERROR) << "ProcessId is 0";
+    LOG_IF(copyInfo.ProcessId == 0, WARNING) << "ProcessId is 0";
 
     HANDLE hDevice = CreateFileW(
         DRIVER_DEVICE_PATH,
@@ -182,9 +196,68 @@ BOOL ReadProcessMemoryDrivered(
             LOG(ERROR) << L"DeviceIoControl() failed with error: " << GetLastError();
             result = FALSE;
         }
+        if (lpNumberOfBytesReturned)
+            LOG(INFO) << "NumberOfBytesReturned: " << *lpNumberOfBytesReturned;
     }
 
-    LOG(INFO) << "NumberOfBytesReturned: " << *lpNumberOfBytesReturned;
+    if (hDevice) {
+        CloseHandle(hDevice);
+    }
+    return result;
+}
+
+BOOL WriteProcessMemoryDrivered(
+    _In_ HANDLE hProcess,
+    _In_ LPCVOID lpBaseAddress,
+    _In_ LPVOID lpBuffer,
+    _In_ SIZE_T nSize,
+    _Out_opt_ LPDWORD lpNumberOfBytesReturned)
+{
+    BOOL result = TRUE;
+    DRIVER_COPY_MEMORY copyInfo = { 0 };
+    if (lpNumberOfBytesReturned) {
+        *lpNumberOfBytesReturned = 0;
+    }
+    LOG_IF(hProcess == NULL, ERROR) << "hProcess is NULL";
+
+    copyInfo.ProcessId = GetProcessId(hProcess);
+    copyInfo.Source = (ULONGLONG)lpBuffer;
+    copyInfo.Target = (ULONGLONG)lpBaseAddress;
+    copyInfo.Size = nSize;
+    copyInfo.Write = TRUE;
+    LOG_IF(copyInfo.ProcessId == 0, WARNING) << "ProcessId is 0";
+
+    HANDLE hDevice = CreateFileW(
+        DRIVER_DEVICE_PATH,
+        GENERIC_READ | GENERIC_WRITE,
+        FILE_SHARE_READ | FILE_SHARE_WRITE,
+        0,
+        OPEN_EXISTING,
+        0, 0);
+    if (hDevice == INVALID_HANDLE_VALUE) {
+        LOG(ERROR) << L"Failed to open the device " << DRIVER_DEVICE_PATH 
+            << ". Error: " << GetLastError();
+        result = FALSE;
+    }
+
+    if (result == TRUE) {
+        if (!DeviceIoControl(
+            hDevice,
+            IOCTL_DRIVER_COPY_MEMORY,
+            &copyInfo,
+            sizeof(copyInfo),
+            &copyInfo,
+            sizeof(copyInfo),
+            lpNumberOfBytesReturned,
+            NULL
+        )) {
+            LOG(ERROR) << L"DeviceIoControl() failed with error: " << GetLastError();
+            result = FALSE;
+        }
+        if (lpNumberOfBytesReturned)
+            LOG(INFO) << "NumberOfBytesReturned: " << *lpNumberOfBytesReturned;
+    }
+
     if (hDevice) {
         CloseHandle(hDevice);
     }
