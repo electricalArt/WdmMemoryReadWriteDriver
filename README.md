@@ -1,33 +1,51 @@
 # WdmMemoryReadWriteDriver
 
-A windows kernel-mode driver to perform read/write operations. It handles direct IRP requests generated
-with `DeviceIoControl()`.
+A windows kernel-mode driver to perform read/write operations. It handles direct [IRP](https://learn.microsoft.com/en-us/windows-hardware/drivers/kernel/handling-irps) requests generated
+with [`DeviceIoControl()`](https://learn.microsoft.com/en-us/windows/win32/api/ioapiset/nf-ioapiset-deviceiocontrol).
 
-The driver uses Windows Driver Model routines.
+The driver uses [Windows Driver Model](https://learn.microsoft.com/en-us/windows-hardware/drivers/kernel/introduction-to-wdm) routines.
 
 ## Install
 
-Build the `WdmMemoryReadWriteDriver` project and (optionally) `TestWdmMemoryReadWriteDriver` project with Visual Studio. <br/>
-<br/>
-After that you have several options.
+Build the `WdmMemoryReadWriteDriver` project and (optionally) the `TestWdmMemoryReadWriteDriver` project with Visual Studio. <br/>
 
-You can load the driver as service:
-* Start remote PS session to your target computer and use <br/>
-  `.\DeployDriver.ps1 <TargetPSSession> <TargetSessionPath>` <br/>
-  or <br/>
-  `.\DeployAndTest.ps1 <TargetPSSession> <TargetSessionPath>` <br/>
-  script.
-* Or, if you prefer, start the driver as service. Run the following commands in PowerShell either Command prompt:
-  * Enable testsigning to be able to load that unsigned driver: <br/>
-    `bcdedit.exe -set TESTSIGNING ON`
-  * Restart your computer.
-  * Create service: <br/>
-    `sc.exe create WdmMemoryReadWriteDriver type= kernel binpath= <full\path\to\WdmMemoryReadWriteDriver.sys> DisplayName= WdmMemoryReadWriteDriver`
-  * Start service: <br/>
-    `sc.exe start WdmMemoryReadWriteDriver`
+Then, to be able to load the driver, you should enable [test signing](https://learn.microsoft.com/en-us/windows-hardware/drivers/install/test-signing) on your target computer: <br/>
+```PowerShell
+bcdedit.exe -set TESTSIGNING ON
+```
 
-You also can load the driver as average driver:
-* Press the Right Mouse Button on `WdmMemoryReadWriteDriver.inf`, then choose Install.
+After that you have several options:
+
+### Load the driver as average driver:
+
+Press the Right Mouse Button on `.\x64\Release\WdmMemoryReadWriteDriver\WdmMemoryReadWriteDriver.inf`, then choose `Install` button.
+
+### Loading the driver as service:
+```PowerShell
+  sc.exe create WdmMemoryReadWriteDriver type= kernel binpath= <full\path\to\WdmMemoryReadWriteDriver.sys> DisplayName= WdmMemoryReadWriteDriver`
+  sc.exe start WdmMemoryReadWriteDriver`
+```
+
+### Deploying the driver as service on a target computer:
+Start remote PS session to your target computer and use
+```PowerShell
+cd .\Deployment\
+.\DeployDriver.ps1 <TargetPSSession> <TargetSessionPath>
+```
+or, if you want additionally to perfrom the test, run
+```PowerShell
+cd .\Deployment\
+.\DeployAndTest.ps1 <TargetPSSession> <TargetSessionPath>
+```
+
+## Testing
+
+To make sure that the driver is running properly on you computer, just execute ready-to-use script:
+```PowerShell
+cd .\TestWdmMemoryReadWriteDriver\
+.\TestDriver.ps1
+```
+If everything is fine, you should spot `Success!` message on your terminal.
 
 ## Usage
 
@@ -72,6 +90,8 @@ DeviceIoControl(
     lpNumberOfBytesReturned,
     NULL);
 ```
+
+You can take a look into `TestWdmMemoryReadWriteDriver` if you want to receive ready-to-use `ReadProcessMemoryDrivered()` and `WriteProcessMemoryDrivered()` functions.
 
 ## Contributing
 
