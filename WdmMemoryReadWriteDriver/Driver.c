@@ -4,13 +4,13 @@
 
 // Copies virtual memory from one process to another.
 NTKERNELAPI NTSTATUS NTAPI MmCopyVirtualMemory(
-	IN PEPROCESS FromProcess,
-	IN PVOID FromAddress,
-	IN PEPROCESS ToProcess,
-	OUT PVOID ToAddress,
-	IN SIZE_T BufferSize,
-	IN KPROCESSOR_MODE PreviousMode,
-	OUT PSIZE_T NumberOfBytesCopied
+	_In_ PEPROCESS FromProcess,
+	_In_ PVOID FromAddress,
+	_In_ PEPROCESS ToProcess,
+	_Out_ PVOID ToAddress,
+	_In_ SIZE_T BufferSize,
+	_In_ KPROCESSOR_MODE PreviousMode,
+	_Out_ PSIZE_T NumberOfBytesCopied
 );
 
 // Forward declaration for suppressing code analysis warnings.
@@ -23,7 +23,7 @@ _Dispatch_type_(IRP_MJ_DEVICE_CONTROL)
 DRIVER_DISPATCH DriverDispatch;
 
 // Performs a memory copy request.
-NTSTATUS DriverCopy(IN PDRIVER_COPY_MEMORY copy) {
+NTSTATUS DriverCopy(_In_ PDRIVER_COPY_MEMORY copy) {
 	NTSTATUS status = STATUS_SUCCESS;
 	PEPROCESS process;
 
@@ -33,7 +33,7 @@ NTSTATUS DriverCopy(IN PDRIVER_COPY_MEMORY copy) {
 		PEPROCESS sourceProcess, targetProcess;
 		PVOID sourcePtr, targetPtr;
 
-		if (copy->Write) {
+		if (copy->IsWrite) {
 			sourceProcess = PsGetCurrentProcess();
 			targetProcess = process;
 		}
@@ -87,7 +87,7 @@ NTSTATUS DriverDispatch(_In_ PDEVICE_OBJECT DeviceObject, _Inout_ PIRP Irp) {
 }
 
 // Unloads the driver.
-VOID DriverUnload(IN PDRIVER_OBJECT DriverObject) {
+VOID DriverUnload(_In_ PDRIVER_OBJECT DriverObject) {
 	UNICODE_STRING dosDeviceName;
 	RtlUnicodeStringInit(&dosDeviceName, DRIVER_DOS_DEVICE_NAME);
 
@@ -96,7 +96,7 @@ VOID DriverUnload(IN PDRIVER_OBJECT DriverObject) {
 }
 
 // Entry point for the driver.
-NTSTATUS DriverEntry(IN PDRIVER_OBJECT DriverObject, IN PUNICODE_STRING RegistryPath) {
+NTSTATUS DriverEntry(_In_ PDRIVER_OBJECT DriverObject, _In_ PUNICODE_STRING RegistryPath) {
 	NTSTATUS status = STATUS_SUCCESS;
 
 	UNREFERENCED_PARAMETER(RegistryPath);

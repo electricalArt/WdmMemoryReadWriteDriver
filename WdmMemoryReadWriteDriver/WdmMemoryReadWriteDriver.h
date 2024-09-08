@@ -1,9 +1,9 @@
 #pragma once
 
-#define DRIVER_NAME L"WdmCheatDriver"
-#define DRIVER_DEVICE_NAME     L"\\Device\\WdmCheatDriver"
-#define DRIVER_DOS_DEVICE_NAME L"\\DosDevices\\WdmCheatDriver"
-#define DRIVER_DEVICE_PATH  L"\\\\.\\WdmCheatDriver"
+#define DRIVER_NAME L"WdmMemoryReadWriteDriver"
+#define DRIVER_DEVICE_NAME     L"\\Device\\WdmMemoryReadWriteDriver"
+#define DRIVER_DOS_DEVICE_NAME L"\\DosDevices\\WdmMemoryReadWriteDriver"
+#define DRIVER_DEVICE_PATH  L"\\\\.\\WdmMemoryReadWriteDriver"
 #define DRIVER_DEVICE_TYPE 0x00000022
 
 // Request for read/writing memory from/to a process.
@@ -15,5 +15,5 @@ typedef struct _DRIVER_COPY_MEMORY {
 	ULONGLONG Target; // Target buffer address. To where the memory will be written
 	ULONGLONG Size; // Buffer size.
 	ULONG ProcessId; // Source/Target process ID
-	BOOLEAN Write; // TRUE if writing, FALSE if reading.
+	BOOLEAN IsWrite; // TRUE if writing, FALSE if reading.
 } DRIVER_COPY_MEMORY, *PDRIVER_COPY_MEMORY;

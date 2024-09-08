@@ -6,12 +6,15 @@
 
 INITIALIZE_EASYLOGGINGPP
 
+// Reads virutal memory of specified process using driver.
 BOOL ReadProcessMemoryDrivered(
     _In_ HANDLE hProcess,
     _In_ LPCVOID lpBaseAddress,
     _Out_ LPVOID lpBuffer,
     _In_ SIZE_T nSize,
     _Out_opt_ LPDWORD lpNumberOfBytesReturned);
+
+// Writes virutal memory of specified process using driver.
 BOOL WriteProcessMemoryDrivered(
     _In_ HANDLE hProcess,
     _In_ LPCVOID lpBaseAddress,
@@ -19,6 +22,7 @@ BOOL WriteProcessMemoryDrivered(
     _In_ SIZE_T nSize,
     _Out_opt_ LPDWORD lpNumberOfBytesReturned);
 
+// Parses command-line arguments.
 void ParseArguments(
     _In_ int argc,
     _In_ char** argv,
@@ -28,20 +32,21 @@ void ParseArguments(
     _Out_ INT32* newValue);
 
 /*F+F+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-  Summary:  What MyLocalFunction is for and what it does.
+  Summary:  Reads/writes values from specified process with specified
+            pointer address using `WdmMemoryReadWriteDriver`.
 
   Args:     TestWdmMemoryReadWriteDriver read  <ProcessId> <Pointer> 
 			TestWdmMemoryReadWriteDriver write <ProcessId> <Pointer> <NewValue>
 
-
   Returns:  zero
-				if success.
+				If success.
 			nonzero
-				if fail
+				If fail.
 ----------------------------------------------------------------F-F*/
 int main(int argc, char** argv)
 {
-	DWORD result = 0;
+	DWORD result = EXIT_SUCCESS;
+    BOOL ioResult = FALSE;
     std::string command;
     DWORD processId = 0;
     LPVOID pointer = NULL;
@@ -57,32 +62,29 @@ int main(int argc, char** argv)
             PROCESS_VM_READ | PROCESS_VM_WRITE | PROCESS_QUERY_LIMITED_INFORMATION,
             FALSE,
             processId);
-        if (process == NULL) {
+        if (process == NULL)
             throw std::runtime_error("Failed to open specified process");
-        }
 
         if (command == "read") {
-            result = ReadProcessMemoryDrivered(
+            ioResult = ReadProcessMemoryDrivered(
                 process,
                 pointer,
                 &buff,
                 sizeof(buff),
                 &cbReturned);
             LOG(INFO) << "buff: " << buff;
-            if (result == FALSE) {
+            if (ioResult == FALSE)
                 throw std::runtime_error("Failed to read from specified process");
-            }
         }
         else if (command == "write") {
-            result = WriteProcessMemoryDrivered(
+            ioResult = WriteProcessMemoryDrivered(
                 process,
                 pointer,
                 &newValue,
                 sizeof newValue,
                 &cbReturned);
-            if (result == FALSE) {
+            if (ioResult == FALSE)
                 throw std::runtime_error("Failed to write to specified process");
-            }
         }
         else {
             throw TCLAP::ArgException("Invalid command is specified", "command");
@@ -91,11 +93,9 @@ int main(int argc, char** argv)
         std::cout << "buff: " << buff << std::endl;
         std::cout << "cbReturned: " << cbReturned << std::endl;
     }
-    catch (TCLAP::ArgException& ex) {
-        std::cout << ex.what() << std::endl;
-    }
     catch (std::exception& ex) {
         std::cout << "ERROR: " << ex.what() << std::endl;
+        result = EXIT_FAILURE;
     }
 
     if (process)
@@ -166,7 +166,7 @@ BOOL ReadProcessMemoryDrivered(
     copyInfo.Source = (ULONGLONG)lpBaseAddress;
     copyInfo.Target = (ULONGLONG)lpBuffer;
     copyInfo.Size = nSize;
-    copyInfo.Write = FALSE;
+    copyInfo.IsWrite = FALSE;
     LOG_IF(copyInfo.ProcessId == 0, WARNING) << "ProcessId is 0";
 
     HANDLE hDevice = CreateFileW(
@@ -177,7 +177,7 @@ BOOL ReadProcessMemoryDrivered(
         OPEN_EXISTING,
         0, 0);
     if (hDevice == INVALID_HANDLE_VALUE) {
-        LOG(ERROR) << L"Failed to open the device " << DRIVER_DEVICE_PATH 
+        LOG(ERROR) << L"Failed to open the device " << DRIVER_DEVICE_PATH
             << ". Error: " << GetLastError();
         result = FALSE;
     }
@@ -224,7 +224,7 @@ BOOL WriteProcessMemoryDrivered(
     copyInfo.Source = (ULONGLONG)lpBuffer;
     copyInfo.Target = (ULONGLONG)lpBaseAddress;
     copyInfo.Size = nSize;
-    copyInfo.Write = TRUE;
+    copyInfo.IsWrite = TRUE;
     LOG_IF(copyInfo.ProcessId == 0, WARNING) << "ProcessId is 0";
 
     HANDLE hDevice = CreateFileW(
@@ -235,7 +235,7 @@ BOOL WriteProcessMemoryDrivered(
         OPEN_EXISTING,
         0, 0);
     if (hDevice == INVALID_HANDLE_VALUE) {
-        LOG(ERROR) << L"Failed to open the device " << DRIVER_DEVICE_PATH 
+        LOG(ERROR) << L"Failed to open the device " << DRIVER_DEVICE_PATH
             << ". Error: " << GetLastError();
         result = FALSE;
     }
