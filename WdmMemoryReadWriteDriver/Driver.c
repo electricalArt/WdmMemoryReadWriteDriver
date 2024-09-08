@@ -3,6 +3,7 @@
 #include "WdmMemoryReadWriteDriver.h"
 
 // Copies virtual memory from one process to another.
+// It is undocumented function 
 NTKERNELAPI NTSTATUS NTAPI MmCopyVirtualMemory(
 	_In_ PEPROCESS FromProcess,
 	_In_ PVOID FromAddress,

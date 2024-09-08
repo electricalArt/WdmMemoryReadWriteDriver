@@ -10,6 +10,13 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "TestWdmMemoryReadWriteDrive
 		{74B9A466-0EF0-4718-B094-001A02D9E71D} = {74B9A466-0EF0-4718-B094-001A02D9E71D}
 	EndProjectSection
 EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution Items", "{7EF91082-86E0-41E2-849C-41B8AE7BC376}"
+	ProjectSection(SolutionItems) = preProject
+		Clean.ps1 = Clean.ps1
+		TestDriver.ps1 = TestDriver.ps1
+		DeployDriver.ps1 = DeployDriver.ps1
+	EndProjectSection
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|ARM64 = Debug|ARM64
