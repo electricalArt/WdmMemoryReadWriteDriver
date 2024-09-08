@@ -1,6 +1,6 @@
 # WdmMemoryReadWriteDriver
 
-A windows kernel-mode driver to perform read/write operations. It handles direct [IRP](https://learn.microsoft.com/en-us/windows-hardware/drivers/kernel/handling-irps) requests generated
+A Windows kernel-mode driver to perform read/write operations. It handles direct [IRP](https://learn.microsoft.com/en-us/windows-hardware/drivers/kernel/handling-irps) requests generated
 with [`DeviceIoControl()`](https://learn.microsoft.com/en-us/windows/win32/api/ioapiset/nf-ioapiset-deviceiocontrol).
 
 The driver uses [Windows Driver Model](https://learn.microsoft.com/en-us/windows-hardware/drivers/kernel/introduction-to-wdm) routines.
