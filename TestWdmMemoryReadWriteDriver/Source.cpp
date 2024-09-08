@@ -241,6 +241,7 @@ BOOL WriteProcessMemoryDrivered(
     }
 
     if (result == TRUE) {
+        // Sending request to driver
         if (!DeviceIoControl(
             hDevice,
             IOCTL_DRIVER_COPY_MEMORY,

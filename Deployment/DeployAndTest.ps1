@@ -2,7 +2,11 @@ param(
     [Parameter(Mandatory)] [System.Management.Automation.Runspaces.PSSession] $TargetSession,
     [Parameter(Mandatory)] [string] $TargetSessionPath
 )
+$SolutionDir = ".."
 
+Write-Host
+Write-Host "DeployAndTest.ps1"
+Write-Host
 
 try
 {
@@ -12,10 +16,9 @@ try
     
     # Test
     Invoke-Command -Session $TargetSession {
-        cd $Using:TargetSessionPath
+        cd $Using:TargetSessionPath\TestWdmMemoryReadWriteDriver
         .\TestDriver.ps1 -TargetPath $Using:TargetSessionPath
     }
-    Write-Host "Success!"
 }
 catch
 {

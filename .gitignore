@@ -9,7 +9,8 @@
 *.user
 *.userosscache
 *.sln.docstates
-DeployAndTestDriverToHp8470p.ps1
+*.swp
+*DeployAndTestDriverToHp8470p.ps1
 
 # User-specific files (MonoDevelop/Xamarin Studio)
 *.userprefs
