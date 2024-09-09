@@ -114,7 +114,7 @@ void ParseArguments(
     TCLAP::CmdLine cmd(
         "TestWdmMemoryReadWriteDriver",
         ' ',
-        "1.1");
+        "1.1.0");
     TCLAP::UnlabeledValueArg<std::string> commandArg(
         "command", "The following commands are available: read | write", TRUE,
         "",
